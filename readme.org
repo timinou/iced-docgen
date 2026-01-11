@@ -1,29 +1,31 @@
-# iced-docgen
+#+TITLE: iced-docgen
+#+AUTHOR: Ora Ventures
+#+DATE: 2026-01-11
 
 Generate org-mode documentation from your Iced applications using procedural macros.
 
-**iced-docgen** lets you annotate your code and automatically generate documentation that stays in sync with your implementation. It's designed to create a single source of truth where your code, tests, and documentation live together.
+*iced-docgen* lets you annotate your code and automatically generate documentation that stays in sync with your implementation. It's designed to create a single source of truth where your code, tests, and documentation live together.
 
-## Features
+* Features
 
-- **5 procedural macros** for different documentation needs
-- **Org-mode output** with proper headers, links, and tables
-- **Mermaid diagrams** for state machines
-- **Screenshot integration** with `iced_test`
-- **Registry system** using compile-time collection
+- *5 procedural macros* for different documentation needs
+- *Org-mode output* with proper headers, links, and tables
+- *Mermaid diagrams* for state machines
+- *Screenshot integration* with =iced_test=
+- *Registry system* using compile-time collection
 
-## Quick Start
+* Quick Start
 
-Add to your `Cargo.toml`:
+Add to your =Cargo.toml=:
 
-```toml
+#+begin_src toml
 [dev-dependencies]
 iced-docgen = { path = "../iced-docgen/crates/iced-docgen" }
-```
+#+end_src
 
 Annotate your views:
 
-```rust
+#+begin_src rust
 use iced_docgen::{documented, screenshot};
 
 /// Displays all tasks in a sortable table
@@ -42,11 +44,11 @@ use iced_docgen::{documented, screenshot};
 pub fn view_task_list(state: &AppState) -> Element<Message> {
     // ...
 }
-```
+#+end_src
 
 Generate documentation:
 
-```rust
+#+begin_src rust
 // tests/generate_docs.rs
 #[test]
 fn generate_docs() {
@@ -56,17 +58,17 @@ fn generate_docs() {
         ..Default::default()
     }).unwrap();
 }
-```
+#+end_src
 
-Run with `cargo test generate_docs`.
+Run with =cargo test generate_docs=.
 
-## The Five Macros
+* The Five Macros
 
-### `#[documented]` - Core Documentation
+** =#[documented]= - Core Documentation
 
 Captures metadata for any function, struct, or enum:
 
-```rust
+#+begin_src rust
 #[documented(
     title = "Human-readable title",
     section = "views",           // Groups in output files
@@ -74,15 +76,15 @@ Captures metadata for any function, struct, or enum:
     links_to = ["TypeA", "TypeB"], // Cross-references
     see_also = ["related_fn"]    // Related items
 )]
-```
+#+end_src
 
 Doc comments are automatically extracted as the description.
 
-### `#[screenshot]` - View Screenshots
+** =#[screenshot]= - View Screenshots
 
 Generates screenshot tests and embeds them in documentation:
 
-```rust
+#+begin_src rust
 #[screenshot(
     name = "kanban",
     theme = "Light",  // or "Dark"
@@ -93,13 +95,13 @@ Generates screenshot tests and embeds them in documentation:
     caption = "Kanban board showing task columns"
 )]
 pub fn view_kanban(state: &AppState) -> Element<Message> { ... }
-```
+#+end_src
 
-### `#[usecase]` - User Stories
+** =#[usecase]= - User Stories
 
 Documents user stories that double as integration tests:
 
-```rust
+#+begin_src rust
 #[usecase(
     title = "Complete a Task",
     actor = "Admin",
@@ -113,13 +115,13 @@ Documents user stories that double as integration tests:
 fn test_complete_task() {
     // Test implementation validates the usecase
 }
-```
+#+end_src
 
-### `#[workflow]` - User Journeys
+** =#[workflow]= - User Journeys
 
 Documents multi-step workflows with screenshots:
 
-```rust
+#+begin_src rust
 #[workflow(
     title = "Morning Review",
     persona = "Project Manager",
@@ -132,13 +134,13 @@ Documents multi-step workflows with screenshots:
     outcomes = ["PM knows priorities", "First task selected"]
 )]
 fn document_morning_review() {}
-```
+#+end_src
 
-### `#[state_doc]` - State Machines
+** =#[state_doc]= - State Machines
 
 Generates Mermaid diagrams from enums:
 
-```rust
+#+begin_src rust
 #[state_doc(
     title = "Task Status",
     description = "Lifecycle states of a task",
@@ -161,11 +163,11 @@ pub enum TaskStatus {
     #[state(terminal = true)]
     Done,
 }
-```
+#+end_src
 
 Generates:
 
-```mermaid
+#+begin_src mermaid
 stateDiagram-v2
     [*] --> Backlog
     Backlog --> Todo
@@ -176,18 +178,18 @@ stateDiagram-v2
     Review --> Done
     Review --> InProgress
     Done --> [*]
-```
+#+end_src
 
-## Generated Output
+* Generated Output
 
-```
+#+begin_example
 docs/
 ├── index.org       # Links to all sections
 ├── views.org       # From #[documented] + #[screenshot]
 ├── models.org      # From #[state_doc]
 ├── usecases.org    # From #[usecase]
 └── workflows.org   # From #[workflow]
-```
+#+end_example
 
 Each entry includes:
 - Title and description
@@ -196,13 +198,13 @@ Each entry includes:
 - Cross-references
 - Type-specific content (screenshots, diagrams, steps)
 
-## How It Works
+* How It Works
 
-1. **Compile time**: Macros register entries via the `inventory` crate
-2. **Test time**: `generate()` collects all entries and renders to org-mode
-3. **Output**: Clean `.org` files ready for Emacs, Pandoc, or any org-mode reader
+1. *Compile time*: Macros register entries via the =inventory= crate
+2. *Test time*: =generate()= collects all entries and renders to org-mode
+3. *Output*: Clean =.org= files ready for Emacs, Pandoc, or any org-mode reader
 
-## Why Org-Mode?
+* Why Org-Mode?
 
 - Plain text, version-controllable
 - Rich formatting without markup noise
@@ -210,18 +212,20 @@ Each entry includes:
 - Easy to convert to HTML, PDF, Markdown
 - Great for literate programming
 
-## Self-Documenting Bot
+* Self-Documenting Bot
 
 The annotations serve as structured training data for AI assistants:
 
-- **What**: Title, description, purpose
-- **Where**: Source file links
-- **How**: Workflows and usecases
-- **Why**: Cross-references show relationships
-- **When**: State machines show valid transitions
+| Aspect | Source |
+|--------+--------|
+| *What* | Title, description, purpose |
+| *Where* | Source file links |
+| *How* | Workflows and usecases |
+| *Why* | Cross-references show relationships |
+| *When* | State machines show valid transitions |
 
 An AI reading these docs understands not just the code, but the intended user experience.
 
-## License
+* License
 
 MIT OR Apache-2.0
