@@ -1,0 +1,25 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/oraventures/iced-docgen"
+description = "Procedural macros for generating org-mode documentation from Iced applications"
+
+[workspace.dependencies]
+# Proc macro dependencies
+syn = { version = "2.0", features = ["full", "extra-traits", "parsing"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+# Runtime dependencies
+inventory = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Iced integration
+iced = "0.14"
+iced_test = "0.14"

@@ -1,0 +1,227 @@
+# iced-docgen
+
+Generate org-mode documentation from your Iced applications using procedural macros.
+
+**iced-docgen** lets you annotate your code and automatically generate documentation that stays in sync with your implementation. It's designed to create a single source of truth where your code, tests, and documentation live together.
+
+## Features
+
+- **5 procedural macros** for different documentation needs
+- **Org-mode output** with proper headers, links, and tables
+- **Mermaid diagrams** for state machines
+- **Screenshot integration** with `iced_test`
+- **Registry system** using compile-time collection
+
+## Quick Start
+
+Add to your `Cargo.toml`:
+
+```toml
+[dev-dependencies]
+iced-docgen = { path = "../iced-docgen/crates/iced-docgen" }
+```
+
+Annotate your views:
+
+```rust
+use iced_docgen::{documented, screenshot};
+
+/// Displays all tasks in a sortable table
+#[documented(
+    title = "Task List View",
+    section = "views",
+    tags = ["ui", "tasks"],
+    links_to = ["AppState", "Task"],
+    see_also = ["view_kanban"]
+)]
+#[screenshot(
+    name = "task_list",
+    theme = "Light",
+    scenarios = [("default", "create_mock_state()")]
+)]
+pub fn view_task_list(state: &AppState) -> Element<Message> {
+    // ...
+}
+```
+
+Generate documentation:
+
+```rust
+// tests/generate_docs.rs
+#[test]
+fn generate_docs() {
+    iced_docgen::generate(GenerateOptions {
+        output_dir: PathBuf::from("docs"),
+        project_name: "My App".to_string(),
+        ..Default::default()
+    }).unwrap();
+}
+```
+
+Run with `cargo test generate_docs`.
+
+## The Five Macros
+
+### `#[documented]` - Core Documentation
+
+Captures metadata for any function, struct, or enum:
+
+```rust
+#[documented(
+    title = "Human-readable title",
+    section = "views",           // Groups in output files
+    tags = ["ui", "dashboard"],  // For categorization
+    links_to = ["TypeA", "TypeB"], // Cross-references
+    see_also = ["related_fn"]    // Related items
+)]
+```
+
+Doc comments are automatically extracted as the description.
+
+### `#[screenshot]` - View Screenshots
+
+Generates screenshot tests and embeds them in documentation:
+
+```rust
+#[screenshot(
+    name = "kanban",
+    theme = "Light",  // or "Dark"
+    scenarios = [
+        ("default", "create_mock_state()"),
+        ("empty", "AppState::default()")
+    ],
+    caption = "Kanban board showing task columns"
+)]
+pub fn view_kanban(state: &AppState) -> Element<Message> { ... }
+```
+
+### `#[usecase]` - User Stories
+
+Documents user stories that double as integration tests:
+
+```rust
+#[usecase(
+    title = "Complete a Task",
+    actor = "Admin",
+    goal = "Mark a task as done",
+    preconditions = ["Logged in", "Task exists"],
+    steps = ["Navigate to Kanban", "Click task card", "Confirm completion"],
+    postconditions = ["Task status is Done"],
+    tags = ["kanban", "task-completion"]
+)]
+#[test]
+fn test_complete_task() {
+    // Test implementation validates the usecase
+}
+```
+
+### `#[workflow]` - User Journeys
+
+Documents multi-step workflows with screenshots:
+
+```rust
+#[workflow(
+    title = "Morning Review",
+    persona = "Project Manager",
+    description = "How PMs start their day",
+    steps = [
+        ("TaskList", "Filter by self", "morning_1", "See your tasks"),
+        ("Calendar", "Check deadlines", "morning_2", "What's due today"),
+        ("Kanban", "Pick first task", "morning_3", "Select work")
+    ],
+    outcomes = ["PM knows priorities", "First task selected"]
+)]
+fn document_morning_review() {}
+```
+
+### `#[state_doc]` - State Machines
+
+Generates Mermaid diagrams from enums:
+
+```rust
+#[state_doc(
+    title = "Task Status",
+    description = "Lifecycle states of a task",
+    initial = "Backlog",
+    terminal = ["Done"]
+)]
+pub enum TaskStatus {
+    #[state(description = "Not yet prioritized", transitions_to = ["Todo"])]
+    Backlog,
+
+    #[state(description = "Ready to work", transitions_to = ["InProgress", "Backlog"])]
+    Todo,
+
+    #[state(description = "In progress", transitions_to = ["Review", "Todo"])]
+    InProgress,
+
+    #[state(description = "Under review", transitions_to = ["Done", "InProgress"])]
+    Review,
+
+    #[state(terminal = true)]
+    Done,
+}
+```
+
+Generates:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Backlog
+    Backlog --> Todo
+    Todo --> InProgress
+    Todo --> Backlog
+    InProgress --> Review
+    InProgress --> Todo
+    Review --> Done
+    Review --> InProgress
+    Done --> [*]
+```
+
+## Generated Output
+
+```
+docs/
+├── index.org       # Links to all sections
+├── views.org       # From #[documented] + #[screenshot]
+├── models.org      # From #[state_doc]
+├── usecases.org    # From #[usecase]
+└── workflows.org   # From #[workflow]
+```
+
+Each entry includes:
+- Title and description
+- Source file location (clickable link)
+- Tags for categorization
+- Cross-references
+- Type-specific content (screenshots, diagrams, steps)
+
+## How It Works
+
+1. **Compile time**: Macros register entries via the `inventory` crate
+2. **Test time**: `generate()` collects all entries and renders to org-mode
+3. **Output**: Clean `.org` files ready for Emacs, Pandoc, or any org-mode reader
+
+## Why Org-Mode?
+
+- Plain text, version-controllable
+- Rich formatting without markup noise
+- Mermaid diagrams render in many editors
+- Easy to convert to HTML, PDF, Markdown
+- Great for literate programming
+
+## Self-Documenting Bot
+
+The annotations serve as structured training data for AI assistants:
+
+- **What**: Title, description, purpose
+- **Where**: Source file links
+- **How**: Workflows and usecases
+- **Why**: Cross-references show relationships
+- **When**: State machines show valid transitions
+
+An AI reading these docs understands not just the code, but the intended user experience.
+
+## License
+
+MIT OR Apache-2.0
