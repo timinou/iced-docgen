@@ -10,6 +10,7 @@ iced-docgen-macros = { path = "../iced-docgen-macros" }
 inventory.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+iced_test.workspace = true
 
 [dev-dependencies]
 iced.workspace = true

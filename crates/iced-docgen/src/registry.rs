@@ -71,6 +71,8 @@ pub enum DocKind {
     Usecase,
     /// A multi-step workflow
     Workflow,
+    /// An .ice end-to-end test file
+    IceTest,
 }
 
 /// Type-specific metadata for documented items
@@ -86,6 +88,8 @@ pub enum DocMetadata {
     Workflow(WorkflowMeta),
     /// State machine metadata
     State(StateMeta),
+    /// Ice test file metadata
+    IceTest(IceTestMeta),
 }
 
 /// Metadata for screenshot-annotated views
@@ -150,6 +154,32 @@ pub struct StateMeta {
     pub state_colors: &'static [&'static str],
     /// Comma-separated transitions for each state
     pub state_transitions: &'static [&'static str],
+}
+
+/// Metadata for .ice end-to-end test files
+#[derive(Debug, Clone)]
+pub struct IceTestMeta {
+    /// Path to the .ice file
+    pub file_path: String,
+    /// Viewport dimensions (width, height)
+    pub viewport: Option<(u32, u32)>,
+    /// Test mode (Immediate, Patient)
+    pub mode: String,
+    /// Preset name for initial state
+    pub preset: Option<String>,
+    /// List of test instructions
+    pub instructions: Vec<IceInstruction>,
+}
+
+/// A single instruction in an .ice test file
+#[derive(Debug, Clone)]
+pub struct IceInstruction {
+    /// Instruction type: click, type, expect, tap, screenshot, wait
+    pub kind: String,
+    /// Target selector or text
+    pub target: String,
+    /// Optional value (for type, screenshot, wait)
+    pub value: Option<String>,
 }
 
 #[cfg(test)]

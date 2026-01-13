@@ -92,6 +92,9 @@ impl<'a> OrgRenderer<'a> {
             DocMetadata::State(meta) => {
                 self.render_state_meta(output, meta);
             }
+            DocMetadata::IceTest(meta) => {
+                self.render_ice_test_meta(output, meta);
+            }
             DocMetadata::None => {}
         }
 
@@ -273,6 +276,113 @@ impl<'a> OrgRenderer<'a> {
         }
         writeln!(output).unwrap();
     }
+
+    fn render_ice_test_meta(&self, output: &mut String, meta: &IceTestMeta) {
+        // Setup section
+        writeln!(output, "** Setup").unwrap();
+        if let Some((w, h)) = meta.viewport {
+            writeln!(output, "- *Viewport:* {}x{}", w, h).unwrap();
+        }
+        writeln!(output, "- *Mode:* {}", meta.mode).unwrap();
+        if let Some(preset) = &meta.preset {
+            writeln!(output, "- *Preset:* {}", preset).unwrap();
+        }
+        writeln!(output).unwrap();
+
+        // Steps section with numbered list
+        if !meta.instructions.is_empty() {
+            writeln!(output, "** Steps").unwrap();
+            for (i, instr) in meta.instructions.iter().enumerate() {
+                let step_text = match instr.kind.as_str() {
+                    "click" => format!("=click= \"{}\"", instr.target),
+                    "type" => format!("=type= \"{}\"", instr.value.as_deref().unwrap_or("")),
+                    "expect" => format!("=expect= \"{}\"", instr.target),
+                    "tap" => format!("=tap= {}", instr.target),
+                    "screenshot" => format!("=screenshot= \"{}\"", instr.target),
+                    "wait" => format!("=wait= {} ms", instr.value.as_deref().unwrap_or("0")),
+                    _ => format!("={}: {}=", instr.kind, instr.target),
+                };
+                writeln!(output, "{}. {}", i + 1, step_text).unwrap();
+            }
+            writeln!(output).unwrap();
+        }
+
+        // Mermaid sequence diagram
+        if !meta.instructions.is_empty() {
+            writeln!(output, "** Sequence Diagram").unwrap();
+            writeln!(output).unwrap();
+            writeln!(output, "#+begin_src mermaid").unwrap();
+            writeln!(output, "sequenceDiagram").unwrap();
+            writeln!(output, "    participant User").unwrap();
+            writeln!(output, "    participant App").unwrap();
+
+            for instr in &meta.instructions {
+                match instr.kind.as_str() {
+                    "click" => {
+                        writeln!(output, "    User->>App: click \"{}\"", instr.target).unwrap();
+                    }
+                    "type" => {
+                        writeln!(
+                            output,
+                            "    User->>App: type \"{}\"",
+                            instr.value.as_deref().unwrap_or("")
+                        )
+                        .unwrap();
+                    }
+                    "expect" => {
+                        writeln!(output, "    App-->>User: shows \"{}\"", instr.target).unwrap();
+                    }
+                    "tap" => {
+                        writeln!(output, "    User->>App: tap {}", instr.target).unwrap();
+                    }
+                    "screenshot" => {
+                        writeln!(output, "    Note over App: screenshot \"{}\"", instr.target)
+                            .unwrap();
+                    }
+                    "wait" => {
+                        writeln!(
+                            output,
+                            "    Note over User,App: wait {} ms",
+                            instr.value.as_deref().unwrap_or("0")
+                        )
+                        .unwrap();
+                    }
+                    _ => {
+                        writeln!(output, "    User->>App: {} {}", instr.kind, instr.target)
+                            .unwrap();
+                    }
+                }
+            }
+
+            writeln!(output, "#+end_src").unwrap();
+            writeln!(output).unwrap();
+        }
+
+        // Instructions table
+        if !meta.instructions.is_empty() {
+            writeln!(output, "** Instructions Table").unwrap();
+            writeln!(output).unwrap();
+            writeln!(output, "| Step | Action | Target | Value |").unwrap();
+            writeln!(output, "|------+--------+--------+-------|").unwrap();
+
+            for (i, instr) in meta.instructions.iter().enumerate() {
+                let target = if instr.target.is_empty() {
+                    "-".to_string()
+                } else {
+                    format!("\"{}\"", instr.target)
+                };
+                let value = instr.value.as_ref().map_or("-".to_string(), |v| {
+                    if v.is_empty() {
+                        "-".to_string()
+                    } else {
+                        format!("\"{}\"", v)
+                    }
+                });
+                writeln!(output, "| {} | {} | {} | {} |", i + 1, instr.kind, target, value).unwrap();
+            }
+            writeln!(output).unwrap();
+        }
+    }
 }
 
 /// Get a human-readable title for a section
@@ -283,6 +393,7 @@ fn section_title(section: &str) -> &str {
         "usecases" => "Use Cases",
         "workflows" => "Workflows",
         "screenshots" => "Screenshots",
+        "tests" => "End-to-End Tests",
         "default" => "Documentation",
         _ => section,
     }

@@ -225,6 +225,7 @@ fn test_generate_creates_org_files() {
         screenshots_dir: PathBuf::from("screenshots"),
         project_name: "Test Project".to_string(),
         include_ai_export: false,
+        ice_tests_dir: None,
     };
 
     let result = generate(options).unwrap();
