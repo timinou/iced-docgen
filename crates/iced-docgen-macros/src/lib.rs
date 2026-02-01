@@ -6,8 +6,9 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
+    Expr, Ident, ItemEnum, ItemFn, Token,
     parse::{Parse, ParseStream},
-    parse_macro_input, Expr, Ident, ItemEnum, ItemFn, Token,
+    parse_macro_input,
 };
 
 /// Key-value pair for macro attributes
@@ -134,17 +135,14 @@ pub fn documented(attr: TokenStream, item: TokenStream) -> TokenStream {
         .iter()
         .filter_map(|attr| {
             if attr.path().is_ident("doc") {
-                attr.meta
-                    .require_name_value()
-                    .ok()
-                    .and_then(|nv| {
-                        if let Expr::Lit(lit) = &nv.value {
-                            if let syn::Lit::Str(s) = &lit.lit {
-                                return Some(s.value().trim().to_string());
-                            }
+                attr.meta.require_name_value().ok().and_then(|nv| {
+                    if let Expr::Lit(lit) = &nv.value {
+                        if let syn::Lit::Str(s) = &lit.lit {
+                            return Some(s.value().trim().to_string());
                         }
-                        None
-                    })
+                    }
+                    None
+                })
             } else {
                 None
             }
@@ -308,7 +306,11 @@ pub fn screenshot(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // Build scenario data for registry
     let scenario_names: Vec<&str> = args.scenarios.iter().map(|s| s.name.as_str()).collect();
-    let scenario_states: Vec<&str> = args.scenarios.iter().map(|s| s.state_expr.as_str()).collect();
+    let scenario_states: Vec<&str> = args
+        .scenarios
+        .iter()
+        .map(|s| s.state_expr.as_str())
+        .collect();
 
     let expanded = quote! {
         #input
@@ -878,4 +880,262 @@ pub fn state(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // This is a marker attribute that gets parsed by state_doc
     // We just pass the item through unchanged
     item
+}
+
+// =============================================================================
+// Visual Testing DSL Macros
+// =============================================================================
+
+/// Parsed attributes for #[scenario]
+struct ScenarioArgs {
+    title: String,
+    description: String,
+    preconditions: Vec<String>,
+    tags: Vec<String>,
+}
+
+impl Parse for ScenarioArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut args = ScenarioArgs {
+            title: String::new(),
+            description: String::new(),
+            preconditions: vec![],
+            tags: vec![],
+        };
+
+        while !input.is_empty() {
+            let kv: KeyValue = input.parse()?;
+            let key_str = kv.key.to_string();
+
+            match key_str.as_str() {
+                "title" => {
+                    if let Expr::Lit(lit) = &kv.value {
+                        if let syn::Lit::Str(s) = &lit.lit {
+                            args.title = s.value();
+                        }
+                    }
+                }
+                "description" => {
+                    if let Expr::Lit(lit) = &kv.value {
+                        if let syn::Lit::Str(s) = &lit.lit {
+                            args.description = s.value();
+                        }
+                    }
+                }
+                "preconditions" => {
+                    args.preconditions = parse_string_array(&kv.value);
+                }
+                "tags" => {
+                    args.tags = parse_string_array(&kv.value);
+                }
+                _ => {}
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(args)
+    }
+}
+
+/// Documents a test scenario for visual testing.
+///
+/// This macro registers the test with iced-docgen's registry and generates
+/// documentation from test execution.
+///
+/// # Example
+///
+/// ```ignore
+/// #[scenario(
+///     title = "Add New Task",
+///     description = "User adds a task via input field",
+///     preconditions = ["Empty task list"],
+///     tags = ["tasks", "input"]
+/// )]
+/// #[test]
+/// fn test_add_task() {
+///     let app = MyApp::new();
+///     let mut ctx = TestContext::new(app.view());
+///
+///     ctx.execute(TestAction::click("input").described_as("Focus input"))?;
+///     ctx.execute(TestAction::typewrite("Buy milk"))?;
+///     ctx.execute(TestAction::tap(Key::Enter).with_screenshot())?;
+///     ctx.execute(TestAction::expect("Buy milk"))?;
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn scenario(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(attr as ScenarioArgs);
+    let input = parse_macro_input!(item as ItemFn);
+
+    let fn_name = &input.sig.ident;
+    let fn_name_str = fn_name.to_string();
+
+    let title = if args.title.is_empty() {
+        fn_name_str.clone()
+    } else {
+        args.title.clone()
+    };
+    let description = &args.description;
+    let preconditions: Vec<&str> = args.preconditions.iter().map(|s| s.as_str()).collect();
+    let tags: Vec<&str> = args.tags.iter().map(|s| s.as_str()).collect();
+
+    let expanded = quote! {
+        #input
+
+        ::iced_docgen::inventory::submit! {
+            ::iced_docgen::TestScenarioEntry {
+                id: #fn_name_str,
+                title: #title,
+                description: #description,
+                actor: "User",
+                preconditions: &[#(#preconditions),*],
+                outcomes: &[],
+                tags: &[#(#tags),*],
+                source_file: file!(),
+                source_line: line!(),
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+/// Parsed attributes for #[user_story]
+struct UserStoryArgs {
+    title: String,
+    actor: String,
+    goal: String,
+    preconditions: Vec<String>,
+    outcomes: Vec<String>,
+    tags: Vec<String>,
+}
+
+impl Parse for UserStoryArgs {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let mut args = UserStoryArgs {
+            title: String::new(),
+            actor: "User".to_string(),
+            goal: String::new(),
+            preconditions: vec![],
+            outcomes: vec![],
+            tags: vec![],
+        };
+
+        while !input.is_empty() {
+            let kv: KeyValue = input.parse()?;
+            let key_str = kv.key.to_string();
+
+            match key_str.as_str() {
+                "title" => {
+                    if let Expr::Lit(lit) = &kv.value {
+                        if let syn::Lit::Str(s) = &lit.lit {
+                            args.title = s.value();
+                        }
+                    }
+                }
+                "actor" => {
+                    if let Expr::Lit(lit) = &kv.value {
+                        if let syn::Lit::Str(s) = &lit.lit {
+                            args.actor = s.value();
+                        }
+                    }
+                }
+                "goal" => {
+                    if let Expr::Lit(lit) = &kv.value {
+                        if let syn::Lit::Str(s) = &lit.lit {
+                            args.goal = s.value();
+                        }
+                    }
+                }
+                "preconditions" => {
+                    args.preconditions = parse_string_array(&kv.value);
+                }
+                "outcomes" => {
+                    args.outcomes = parse_string_array(&kv.value);
+                }
+                "tags" => {
+                    args.tags = parse_string_array(&kv.value);
+                }
+                _ => {}
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(args)
+    }
+}
+
+/// Documents a multi-step user story for visual testing.
+///
+/// User stories represent complete user journeys and generate comprehensive
+/// documentation including actor, goal, preconditions, and outcomes.
+///
+/// # Example
+///
+/// ```ignore
+/// #[user_story(
+///     title = "Morning Review",
+///     actor = "Developer",
+///     goal = "Review and prioritize tasks",
+///     preconditions = ["Logged in", "Has pending tasks"],
+///     outcomes = ["Clear priorities", "Urgent tasks identified"],
+///     tags = ["workflow"]
+/// )]
+/// fn story_morning_review() {
+///     let mut ctx = TestContext::new(app.view());
+///
+///     ctx.step("Open dashboard");
+///     ctx.execute(TestAction::click("Dashboard").with_screenshot())?;
+///     ctx.execute(TestAction::expect("Task Overview"))?;
+///
+///     ctx.step("Filter high priority");
+///     ctx.execute(TestAction::click("Priority: High").with_screenshot())?;
+///
+///     // Story documentation generated from ctx.to_story()
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn user_story(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(attr as UserStoryArgs);
+    let input = parse_macro_input!(item as ItemFn);
+
+    let fn_name = &input.sig.ident;
+    let fn_name_str = fn_name.to_string();
+
+    let title = if args.title.is_empty() {
+        fn_name_str.clone()
+    } else {
+        args.title.clone()
+    };
+    let actor = &args.actor;
+    let goal = &args.goal;
+    let preconditions: Vec<&str> = args.preconditions.iter().map(|s| s.as_str()).collect();
+    let outcomes: Vec<&str> = args.outcomes.iter().map(|s| s.as_str()).collect();
+    let tags: Vec<&str> = args.tags.iter().map(|s| s.as_str()).collect();
+
+    let expanded = quote! {
+        #input
+
+        ::iced_docgen::inventory::submit! {
+            ::iced_docgen::TestScenarioEntry {
+                id: #fn_name_str,
+                title: #title,
+                description: #goal,
+                actor: #actor,
+                preconditions: &[#(#preconditions),*],
+                outcomes: &[#(#outcomes),*],
+                tags: &[#(#tags),*],
+                source_file: file!(),
+                source_line: line!(),
+            }
+        }
+    };
+
+    TokenStream::from(expanded)
 }

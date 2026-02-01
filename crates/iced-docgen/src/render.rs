@@ -1,7 +1,7 @@
 //! Org-mode rendering for documented items
 
-use crate::registry::*;
 use crate::GenerateOptions;
+use crate::registry::*;
 use std::collections::HashMap;
 use std::fmt::Write;
 
@@ -19,7 +19,12 @@ impl<'a> OrgRenderer<'a> {
     pub fn render_index(&self, sections: &HashMap<&str, Vec<&DocEntry>>) -> String {
         let mut output = String::new();
 
-        writeln!(output, "#+TITLE: {} Documentation", self.options.project_name).unwrap();
+        writeln!(
+            output,
+            "#+TITLE: {} Documentation",
+            self.options.project_name
+        )
+        .unwrap();
         writeln!(output, "#+DATE: {}", chrono_date()).unwrap();
         writeln!(output).unwrap();
         writeln!(output, "* Contents").unwrap();
@@ -31,8 +36,14 @@ impl<'a> OrgRenderer<'a> {
         for section in section_names {
             let entries = &sections[section];
             let title = section_title(section);
-            writeln!(output, "- [[file:{}.org][{}]] ({} items)", section, title, entries.len())
-                .unwrap();
+            writeln!(
+                output,
+                "- [[file:{}.org][{}]] ({} items)",
+                section,
+                title,
+                entries.len()
+            )
+            .unwrap();
         }
 
         output
@@ -94,6 +105,12 @@ impl<'a> OrgRenderer<'a> {
             }
             DocMetadata::IceTest(meta) => {
                 self.render_ice_test_meta(output, meta);
+            }
+            DocMetadata::Scenario(meta) => {
+                self.render_scenario_meta(output, meta);
+            }
+            DocMetadata::UserStoryMeta(meta) => {
+                self.render_user_story_meta(output, meta);
             }
             DocMetadata::None => {}
         }
@@ -378,7 +395,55 @@ impl<'a> OrgRenderer<'a> {
                         format!("\"{}\"", v)
                     }
                 });
-                writeln!(output, "| {} | {} | {} | {} |", i + 1, instr.kind, target, value).unwrap();
+                writeln!(
+                    output,
+                    "| {} | {} | {} | {} |",
+                    i + 1,
+                    instr.kind,
+                    target,
+                    value
+                )
+                .unwrap();
+            }
+            writeln!(output).unwrap();
+        }
+    }
+
+    fn render_scenario_meta(&self, output: &mut String, meta: &ScenarioMeta) {
+        // Preconditions
+        if !meta.preconditions.is_empty() {
+            writeln!(output, "** Preconditions").unwrap();
+            for pre in meta.preconditions {
+                writeln!(output, "- {}", pre).unwrap();
+            }
+            writeln!(output).unwrap();
+        }
+    }
+
+    fn render_user_story_meta(&self, output: &mut String, meta: &UserStoryMeta) {
+        // Actor and goal
+        writeln!(output, "** Actor").unwrap();
+        writeln!(output, "{}", meta.actor).unwrap();
+        writeln!(output).unwrap();
+
+        writeln!(output, "** Goal").unwrap();
+        writeln!(output, "{}", meta.goal).unwrap();
+        writeln!(output).unwrap();
+
+        // Preconditions
+        if !meta.preconditions.is_empty() {
+            writeln!(output, "** Preconditions").unwrap();
+            for pre in meta.preconditions {
+                writeln!(output, "- {}", pre).unwrap();
+            }
+            writeln!(output).unwrap();
+        }
+
+        // Outcomes
+        if !meta.outcomes.is_empty() {
+            writeln!(output, "** Expected Outcomes").unwrap();
+            for outcome in meta.outcomes {
+                writeln!(output, "- [ ] {}", outcome).unwrap();
             }
             writeln!(output).unwrap();
         }

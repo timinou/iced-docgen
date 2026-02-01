@@ -3,10 +3,10 @@
 //! These tests verify that the macros work correctly and that documentation
 //! can be generated from annotated code.
 
-use iced::widget::{column, text};
 use iced::Element;
+use iced::widget::{column, text};
+use iced_docgen::{DocKind, DocMetadata, GenerateOptions, all_entries, generate};
 use iced_docgen::{documented, screenshot, state_doc, usecase, workflow};
-use iced_docgen::{all_entries, generate, DocKind, DocMetadata, GenerateOptions};
 use std::path::PathBuf;
 
 // Simple test types

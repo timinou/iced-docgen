@@ -51,9 +51,7 @@ pub fn entries_by_kind(kind: DocKind) -> Vec<&'static DocEntry> {
 
 /// Get entries filtered by tag
 pub fn entries_by_tag(tag: &str) -> Vec<&'static DocEntry> {
-    all_entries()
-        .filter(|e| e.tags.contains(&tag))
-        .collect()
+    all_entries().filter(|e| e.tags.contains(&tag)).collect()
 }
 
 /// The kind of documented item
@@ -73,6 +71,10 @@ pub enum DocKind {
     Workflow,
     /// An .ice end-to-end test file
     IceTest,
+    /// A test scenario (via #[scenario] macro)
+    Scenario,
+    /// A user story test (via #[user_story] macro)
+    UserStory,
 }
 
 /// Type-specific metadata for documented items
@@ -90,6 +92,10 @@ pub enum DocMetadata {
     State(StateMeta),
     /// Ice test file metadata
     IceTest(IceTestMeta),
+    /// Test scenario metadata
+    Scenario(ScenarioMeta),
+    /// User story metadata
+    UserStoryMeta(UserStoryMeta),
 }
 
 /// Metadata for screenshot-annotated views
@@ -180,6 +186,69 @@ pub struct IceInstruction {
     pub target: String,
     /// Optional value (for type, screenshot, wait)
     pub value: Option<String>,
+}
+
+/// Metadata for test scenarios (via #[scenario] macro)
+///
+/// Scenarios are individual test cases with rich metadata for documentation.
+#[derive(Debug, Clone)]
+pub struct ScenarioMeta {
+    /// Preconditions that must be true before the test
+    pub preconditions: &'static [&'static str],
+}
+
+/// Metadata for user story tests (via #[user_story] macro)
+///
+/// User stories are multi-step test journeys with actor, goal, and outcomes.
+#[derive(Debug, Clone)]
+pub struct UserStoryMeta {
+    /// Actor performing the story (e.g., "Developer", "Admin")
+    pub actor: &'static str,
+    /// What the actor wants to achieve
+    pub goal: &'static str,
+    /// Prerequisites for this story
+    pub preconditions: &'static [&'static str],
+    /// Expected outcomes after the story completes
+    pub outcomes: &'static [&'static str],
+}
+
+/// A test scenario entry collected at compile time
+///
+/// This is the primary type for registering test scenarios via inventory.
+#[derive(Debug, Clone)]
+pub struct TestScenarioEntry {
+    /// Unique identifier for the scenario
+    pub id: &'static str,
+    /// Human-readable title
+    pub title: &'static str,
+    /// Description of what the scenario tests
+    pub description: &'static str,
+    /// Actor performing the test (for user stories)
+    pub actor: &'static str,
+    /// Preconditions that must be true
+    pub preconditions: &'static [&'static str],
+    /// Expected outcomes
+    pub outcomes: &'static [&'static str],
+    /// Tags for categorization
+    pub tags: &'static [&'static str],
+    /// Source file path
+    pub source_file: &'static str,
+    /// Source line number
+    pub source_line: u32,
+}
+
+inventory::collect!(TestScenarioEntry);
+
+/// Get all registered test scenario entries
+pub fn all_test_scenarios() -> impl Iterator<Item = &'static TestScenarioEntry> {
+    inventory::iter::<TestScenarioEntry>.into_iter()
+}
+
+/// Get test scenarios filtered by tag
+pub fn test_scenarios_by_tag(tag: &str) -> Vec<&'static TestScenarioEntry> {
+    all_test_scenarios()
+        .filter(|e| e.tags.contains(&tag))
+        .collect()
 }
 
 #[cfg(test)]

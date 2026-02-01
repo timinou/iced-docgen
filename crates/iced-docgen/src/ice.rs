@@ -276,7 +276,10 @@ screenshot "task_created"
 
     #[test]
     fn test_test_name_from_path() {
-        assert_eq!(test_name_from_path(Path::new("tests/ice/create_task.ice")), "create_task");
+        assert_eq!(
+            test_name_from_path(Path::new("tests/ice/create_task.ice")),
+            "create_task"
+        );
         assert_eq!(test_name_from_path(Path::new("my_test.ice")), "my_test");
     }
 }
