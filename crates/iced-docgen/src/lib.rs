@@ -19,6 +19,22 @@
 //! }
 //! ```
 //!
+//! # Visual Testing DSL
+//!
+//! The `dsl` module provides a high-level interface for writing visual tests
+//! that generate human-readable documentation:
+//!
+//! ```ignore
+//! use iced_docgen::dsl::{TestAction, TestContext};
+//!
+//! let mut ctx = TestContext::new(my_view());
+//! ctx.execute(TestAction::click("Submit").described_as("Submit form"))?;
+//! ctx.execute(TestAction::expect("Success"))?;
+//!
+//! let story = ctx.to_story();
+//! println!("{}", story.to_org());
+//! ```
+//!
 //! # Generating Documentation
 //!
 //! ```ignore
@@ -29,17 +45,20 @@
 //! }
 //! ```
 
+pub mod dsl;
+pub mod ice;
 mod registry;
 mod render;
-pub mod ice;
 
+pub use ice::{IceError, discover_ice_files, parse_ice_file, test_name_from_path};
 pub use inventory;
 pub use registry::*;
 pub use render::*;
-pub use ice::{discover_ice_files, parse_ice_file, test_name_from_path, IceError};
 
 // Re-export macros
-pub use iced_docgen_macros::{documented, screenshot, state, state_doc, usecase, workflow};
+pub use iced_docgen_macros::{
+    documented, scenario, screenshot, state, state_doc, usecase, user_story, workflow,
+};
 
 use std::io;
 use std::path::PathBuf;

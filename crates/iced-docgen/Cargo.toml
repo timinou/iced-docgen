@@ -5,12 +5,20 @@ edition.workspace = true
 license.workspace = true
 description.workspace = true
 
+[features]
+default = []
+vision = ["reqwest", "base64"]
+
 [dependencies]
 iced-docgen-macros = { path = "../iced-docgen-macros" }
 inventory.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 iced_test.workspace = true
+
+# Optional vision AI dependencies
+reqwest = { version = "0.12", features = ["blocking", "json"], optional = true }
+base64 = { version = "0.22", optional = true }
 
 [dev-dependencies]
 iced.workspace = true
