@@ -1,9 +1,9 @@
 [package]
 name = "iced-docgen"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-description.workspace = true
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+description = "Procedural macros for generating org-mode documentation from Iced applications"
 
 [features]
 default = []
@@ -11,15 +11,15 @@ vision = ["reqwest", "base64"]
 
 [dependencies]
 iced-docgen-macros = { path = "../iced-docgen-macros" }
-inventory.workspace = true
-serde.workspace = true
-serde_json.workspace = true
-iced_test.workspace = true
+inventory = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+iced_test = "0.14"
 
 # Optional vision AI dependencies
 reqwest = { version = "0.12", features = ["blocking", "json"], optional = true }
 base64 = { version = "0.22", optional = true }
 
 [dev-dependencies]
-iced.workspace = true
-iced_test.workspace = true
+iced = "0.14"
+iced_test = "0.14"

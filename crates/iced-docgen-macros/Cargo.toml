@@ -1,14 +1,14 @@
 [package]
 name = "iced-docgen-macros"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
+version = "0.1.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
 description = "Procedural macros for iced-docgen"
 
 [lib]
 proc-macro = true
 
 [dependencies]
-syn.workspace = true
-quote.workspace = true
-proc-macro2.workspace = true
+syn = { version = "2.0", features = ["full", "extra-traits", "parsing"] }
+quote = "1.0"
+proc-macro2 = "1.0"
