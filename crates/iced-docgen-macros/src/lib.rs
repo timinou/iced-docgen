@@ -2,6 +2,7 @@
 //!
 //! This crate provides attribute macros for annotating Iced application code
 //! to generate org-mode documentation automatically.
+#![allow(clippy::collapsible_if)]
 
 use proc_macro::TokenStream;
 use quote::quote;

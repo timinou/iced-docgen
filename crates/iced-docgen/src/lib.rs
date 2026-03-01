@@ -2,6 +2,14 @@
 //!
 //! This crate provides procedural macros and runtime support for generating
 //! org-mode documentation directly from your Rust code.
+#![allow(
+    clippy::collapsible_if,
+    clippy::only_used_in_recursion,
+    clippy::result_large_err,
+    clippy::needless_range_loop,
+    clippy::single_component_path_imports,
+    clippy::unnecessary_map_or
+)]
 //!
 //! # Quick Start
 //!
